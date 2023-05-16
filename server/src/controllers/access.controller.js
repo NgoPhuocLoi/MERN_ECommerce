@@ -1,12 +1,18 @@
 const AccessService = require("../services/access.service");
-
+const { CreatedResponse, OKResponse } = require("../helpers/success.response");
 class AccessController {
+  static async login(req, res, next) {
+    new OKResponse({
+      message: "Login successfully!",
+      metadata: await AccessService.login(req.body),
+    }).send(res);
+  }
+
   static async register(req, res, next) {
-    const metadata = await AccessService.register(req.body);
-    res.status(201).json({
-      status: "success",
-      metadata,
-    });
+    new CreatedResponse({
+      message: "Register successfully",
+      metadata: await AccessService.register(req.body),
+    }).send(res);
   }
 }
 
