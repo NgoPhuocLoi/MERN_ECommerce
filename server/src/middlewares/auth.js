@@ -21,7 +21,12 @@ const authentication = asyncHandler(async (req, res, next) => {
     req.user = decoded;
     return next();
   } catch (error) {
-    throw new AuthFailureError("Invalid Token");
+    const msg =
+      error.message === "jwt expired"
+        ? "Access token expired"
+        : "Invalid Token";
+
+    throw new AuthFailureError(msg);
   }
 });
 

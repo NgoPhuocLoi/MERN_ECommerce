@@ -1,15 +1,47 @@
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
 const UserService = require("./user.service");
 const User = require("../models/user");
+const KeyToken = require("../models/keytoken");
 
 const {
   BadRequestError,
   AuthFailureError,
+  ForbiddenError,
 } = require("../helpers/error.response");
 const { generateTokensPair } = require("../utils/auth");
 const KeyTokenService = require("./keytoken.service");
 class AccessService {
+  static async handleRefreshToken({ refreshToken, userId }) {
+    const keyToken = await KeyTokenService.findByUserId(userId);
+
+    if (!keyToken) throw new BadRequestError("User is not registered!");
+    if (refreshToken !== keyToken.refreshToken)
+      throw new AuthFailureError("Invalid refresh token!");
+    try {
+      const decoded = jwt.verify(refreshToken, keyToken.privateKey);
+
+      const tokens = generateTokensPair(
+        { userId: decoded.userId, role: decoded.role },
+        keyToken.privateKey,
+        keyToken.publicKey
+      );
+
+      await KeyToken.findByIdAndUpdate(keyToken._id, {
+        $set: {
+          refreshToken: tokens.refreshToken,
+        },
+      });
+
+      return {
+        tokens,
+      };
+    } catch (error) {
+      console.log(error);
+      throw new ForbiddenError("Something went wrong! Please login again!");
+    }
+  }
   static async login({ email, password }) {
     const user = await UserService.findByEmailOrPhone({ email });
 
@@ -32,6 +64,7 @@ class AccessService {
       userId: user._id,
       privateKey,
       publicKey,
+      refreshToken: tokens.refreshToken,
     });
 
     const { password: p, role, ...userInfo } = user;

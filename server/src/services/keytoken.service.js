@@ -13,7 +13,6 @@ class KeyTokenService {
         new: true,
       }
     );
-    console.log({ keyToken });
     return keyToken;
   }
 
